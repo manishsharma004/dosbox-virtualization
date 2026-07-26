@@ -1,0 +1,13 @@
+node_modules/
+dist/
+
+# Fetched at build time (see scripts/fetch-vendor.mjs) — never commit binaries.
+vendor/
+
+# Generated bundle (see scripts/build-bundle.mjs).
+public/msdos.jsdos
+
+# Logs / editor
+*.log
+.DS_Store
+.vite/
