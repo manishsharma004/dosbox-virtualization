@@ -102,7 +102,16 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
 
   const addMomentary = (def: KeyDef, extraCls: string) => {
     const btn = makeButton(def, extraCls);
+    const code = KBD[def.key];
     let held = false;
+    let repeatTimer: number | null = null;
+
+    const stopRepeat = () => {
+      if (repeatTimer !== null) {
+        window.clearInterval(repeatTimer);
+        repeatTimer = null;
+      }
+    };
 
     const press = (e: Event) => {
       e.preventDefault();
@@ -110,7 +119,12 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
       held = true;
       // Send the key BEFORE anything that could throw (e.g. setPointerCapture
       // with a synthetic pointerId), so the key-down always reaches the game.
-      getCi()?.sendKeyEvent(KBD[def.key], true);
+      getCi()?.sendKeyEvent(code, true);
+      // Games (e.g. Dave) read a *held* key via typematic repeat: a physical
+      // held key fires keydown repeatedly. Re-send "down" on an interval so the
+      // character keeps moving while the button is held.
+      stopRepeat();
+      repeatTimer = window.setInterval(() => getCi()?.sendKeyEvent(code, true), 60);
       btn.classList.add("vkey--down");
       const pid = (e as PointerEvent).pointerId;
       if (pid !== undefined) {
@@ -126,16 +140,25 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
       e?.preventDefault();
       if (!held) return;
       held = false;
-      getCi()?.sendKeyEvent(KBD[def.key], false);
+      stopRepeat();
+      getCi()?.sendKeyEvent(code, false);
       btn.classList.remove("vkey--down");
       // A combo like Ctrl+F9 clears the latched modifier afterwards.
       releaseLatched();
     };
 
+    // Listen for pointer, mouse AND touch events (deduped by the `held` guard)
+    // so a press-and-hold works across mouse, touch and pen inputs.
     btn.addEventListener("pointerdown", press);
     btn.addEventListener("pointerup", release);
     btn.addEventListener("pointercancel", release);
     btn.addEventListener("lostpointercapture", release);
+    btn.addEventListener("mousedown", press);
+    btn.addEventListener("mouseup", release);
+    btn.addEventListener("mouseleave", release);
+    btn.addEventListener("touchstart", press, { passive: false });
+    btn.addEventListener("touchend", release);
+    btn.addEventListener("touchcancel", release);
     // Safety net: never let a key stay stuck down.
     window.addEventListener("blur", () => release());
     return btn;
