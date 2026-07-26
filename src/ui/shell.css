@@ -1,0 +1,247 @@
+:root {
+  --app-height: 100vh;
+  --bg: #0a0e17;
+  --panel: #111726;
+  --panel-2: #0d1320;
+  --accent: #35d07f;
+  --accent-2: #f4bf4f;
+  --text: #e7ecf3;
+  --muted: #8a97ad;
+  --border: #223049;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  overscroll-behavior: none;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: var(--app-height);
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Header ------------------------------------------------------------------ */
+.app__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.app__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.app__logo {
+  font-family: "Courier New", monospace;
+  font-weight: 800;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 2px 8px;
+  border-radius: 5px;
+  box-shadow: 0 0 12px rgba(53, 208, 127, 0.5);
+}
+
+.app__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.app__btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #182236;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.05s, border-color 0.15s;
+}
+
+.app__btn:hover:not(:disabled) {
+  background: #22314c;
+  border-color: #33507d;
+}
+
+.app__btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.app__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.app__btn--ghost {
+  background: transparent;
+}
+
+/* DOS screen -------------------------------------------------------------- */
+.app__screen {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #000;
+  display: flex;
+}
+
+.dos-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* js-dos injects its own player (class .jsdos-rso) into this element and sizes
+   the <canvas> itself, keeping the classic 4:3 aspect ratio and scaling it to
+   fill the available area. We just make sure every wrapper fills the box so the
+   emulator gets the full width/height to work with. */
+.dos-canvas > .jsdos-rso {
+  width: 100%;
+  height: 100%;
+}
+
+.app__loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--muted);
+  background: radial-gradient(circle at 50% 40%, #0c1424, #05070d);
+  /* Never block js-dos's own start/loading UI underneath. */
+  pointer-events: none;
+  z-index: 5;
+}
+
+.app__spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #1d2942;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app__error {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.app__error-detail {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 80%;
+  text-align: center;
+}
+
+/* Virtual keys ------------------------------------------------------------ */
+.vkeys {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: linear-gradient(180deg, var(--panel-2), #080c14);
+  border-top: 1px solid var(--border);
+  touch-action: none;
+  user-select: none;
+}
+
+.vkeys__row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.vkey {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #1a2338;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 46px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.vkey--down {
+  background: #2b3a5a;
+  transform: translateY(1px);
+}
+
+.vkey--mod {
+  color: var(--accent-2);
+  border-color: #4a3d1e;
+}
+
+.vkey--active {
+  background: var(--accent-2);
+  color: #1a1405;
+  box-shadow: 0 0 10px rgba(244, 191, 79, 0.55);
+}
+
+.vkey--arrow {
+  min-width: 52px;
+  font-size: 16px;
+  color: var(--accent);
+}
+
+.vkeys__fkeys {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  flex: 1 1 auto;
+  padding-bottom: 2px;
+}
+
+.vkey--fn {
+  min-width: 40px;
+  height: 34px;
+  font-size: 11px;
+  padding: 0 6px;
+  color: var(--muted);
+}
+
+@media (min-width: 900px) {
+  .vkey {
+    height: 36px;
+  }
+}
