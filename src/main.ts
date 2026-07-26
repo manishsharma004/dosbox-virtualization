@@ -97,16 +97,17 @@ function build() {
     btnKeys.textContent = keysVisible ? "Hide controls" : "Show controls";
   });
 
-  const syncDeviceKbBtn = (open: boolean) => {
-    btnDeviceKb.textContent = open ? "Hide keyboard" : "Device keyboard";
-    btnDeviceKb.classList.toggle("app__btn--active", open);
+  const syncDeviceKbBtn = () => {
+    const device = bar.getMode() === "device";
+    btnDeviceKb.textContent = device ? "Hide keyboard" : "Device keyboard";
+    btnDeviceKb.classList.toggle("app__btn--active", device);
   };
+  bar.onModeChange(syncDeviceKbBtn);
   bar.onDeviceKeyboardChange(syncDeviceKbBtn);
   btnDeviceKb.addEventListener("click", () => {
-    if (bar.isDeviceKeyboardOpen()) {
+    if (bar.getMode() === "device") {
       bar.closeDeviceKeyboard();
     } else {
-      // Make sure the control pad (with modifiers) is visible above the OSK.
       if (!keysVisible) {
         keysVisible = true;
         bar.setVisible(true);

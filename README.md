@@ -54,13 +54,13 @@ download the apps into `vendor/`.
   dependency at runtime.
 - **`scripts/bundle-assets/dosbox.conf`** mounts the bundle root as `C:` and its
   `[autoexec]` shows the menu (`MENU.BAT`). `TC.BAT` / `DAVE.BAT` launch the apps.
-- **`src/ui/modifier-bar.ts`** renders an on-screen control pad: sticky
-  **Ctrl / Alt / Shift**, edit keys (Tab/Esc/Bksp/Enter/Space), a D-pad for
-  arrows, and an optional Fn row for F1–F10. A **Device keyboard** toggle
-  focuses a hidden textarea so the OS soft keyboard can open on mobile (a
-  canvas alone never will); typed characters are forwarded into DOS via
-  `sendKeyEvent`. Layout tracks `visualViewport` so the pad stays visible
-  above the soft keyboard.
+- **`src/ui/modifier-bar.ts`** renders a control pad with a mode switch:
+  **Controls** (modifiers + D-pad), **On-screen KB** (compact QWERTY), and
+  **Device KB** (focuses a real textarea so the OS soft keyboard can open on
+  mobile — a canvas alone never will). Sticky Ctrl/Alt/Shift, edit keys, and
+  an optional Fn row stay available across modes. Typed characters are
+  forwarded into DOS via `sendKeyEvent`. Layout tracks `visualViewport` so
+  the pad stays visible above the soft keyboard.
 
 ## Deploying to GitHub Pages
 
