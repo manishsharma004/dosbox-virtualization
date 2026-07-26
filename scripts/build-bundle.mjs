@@ -62,8 +62,16 @@ function main() {
       path.join(ASSETS, "dosbox.conf"),
       path.join(stage, ".jsdos", "dosbox.conf"),
     );
-    for (const bat of ["MENU.BAT", "TC.BAT", "DAVE.BAT"]) {
-      fs.copyFileSync(path.join(ASSETS, bat), path.join(stage, bat));
+    const rootFiles = [
+      "MENU.BAT",
+      "TC.BAT",
+      "DAVE.BAT",
+      "HELLO.BAT",
+      "HELLO.C",
+      "TURBOC.CFG",
+    ];
+    for (const f of rootFiles) {
+      fs.copyFileSync(path.join(ASSETS, f), path.join(stage, f));
     }
     fs.cpSync(tcRoot, path.join(stage, "TC"), { recursive: true });
     fs.cpSync(daveRoot, path.join(stage, "DAVE"), { recursive: true });

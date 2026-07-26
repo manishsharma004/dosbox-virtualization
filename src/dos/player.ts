@@ -53,7 +53,9 @@ export async function startDos(
     url: BUNDLE_URL,
     pathPrefix: EMULATORS_PATH_PREFIX,
     theme: "dark",
-    backend: "dosbox",
+    // DOSBox-X is more robust than the classic wdosbox build, which traps with
+    // "memory access out of bounds" while running the Turbo C++ IDE.
+    backend: "dosboxX",
     autoStart: true,
     noCloud: true,
     onEvent: (event: string, ...args: unknown[]) => {

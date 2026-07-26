@@ -11,8 +11,9 @@ echo     [1]  Turbo C++ 1.01     type:  TC     then ENTER
 echo     [2]  Dangerous Dave     type:  DAVE   then ENTER
 echo     [3]  DOS prompt         you are already here
 echo.
+echo   Try it:  type  HELLO   to compile and run C:\HELLO.C
 echo   Handy commands:  DIR  CD  CLS  MENU
-echo   Turbo C++ -> C:\TC     Dangerous Dave -> C:\DAVE
+echo   Turbo C++ lives in C:\TC   Dangerous Dave in C:\DAVE
 echo   Files you create are saved in the browser file system.
 echo ==============================================================
 echo.
