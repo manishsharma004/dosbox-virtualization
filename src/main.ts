@@ -49,11 +49,12 @@ function build() {
   const btnDave = h("button", "app__btn", "Dave");
   const btnMenu = h("button", "app__btn app__btn--ghost", "Menu");
   const btnFull = h("button", "app__btn app__btn--ghost", "Fullscreen");
-  const btnKeys = h("button", "app__btn app__btn--ghost", "Hide keys");
-  [btnTc, btnDave, btnMenu, btnFull, btnKeys].forEach((b) =>
+  const btnKeys = h("button", "app__btn app__btn--ghost", "Hide controls");
+  const btnDeviceKb = h("button", "app__btn app__btn--ghost", "Device keyboard");
+  [btnTc, btnDave, btnMenu, btnFull, btnKeys, btnDeviceKb].forEach((b) =>
     b.setAttribute("type", "button"),
   );
-  actions.append(btnTc, btnDave, btnMenu, btnFull, btnKeys);
+  actions.append(btnTc, btnDave, btnMenu, btnFull, btnDeviceKb, btnKeys);
   header.append(title, actions);
 
   const screen = h("main", "app__screen");
@@ -92,8 +93,27 @@ function build() {
   let keysVisible = true;
   btnKeys.addEventListener("click", () => {
     keysVisible = !keysVisible;
-    bar.element.style.display = keysVisible ? "" : "none";
-    btnKeys.textContent = keysVisible ? "Hide keys" : "Show keys";
+    bar.setVisible(keysVisible);
+    btnKeys.textContent = keysVisible ? "Hide controls" : "Show controls";
+  });
+
+  const syncDeviceKbBtn = (open: boolean) => {
+    btnDeviceKb.textContent = open ? "Hide keyboard" : "Device keyboard";
+    btnDeviceKb.classList.toggle("app__btn--active", open);
+  };
+  bar.onDeviceKeyboardChange(syncDeviceKbBtn);
+  btnDeviceKb.addEventListener("click", () => {
+    if (bar.isDeviceKeyboardOpen()) {
+      bar.closeDeviceKeyboard();
+    } else {
+      // Make sure the control pad (with modifiers) is visible above the OSK.
+      if (!keysVisible) {
+        keysVisible = true;
+        bar.setVisible(true);
+        btnKeys.textContent = "Hide controls";
+      }
+      bar.openDeviceKeyboard();
+    }
   });
 
   // Keep the layout sized to the *visual* viewport so the virtual keys stay

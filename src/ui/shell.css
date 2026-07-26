@@ -102,6 +102,12 @@ body {
   background: transparent;
 }
 
+.app__btn--active {
+  background: var(--accent);
+  color: #04140c;
+  border-color: var(--accent);
+}
+
 /* DOS screen -------------------------------------------------------------- */
 .app__screen {
   position: relative;
@@ -167,24 +173,97 @@ body {
   text-align: center;
 }
 
-/* Virtual keys ------------------------------------------------------------ */
+/* Virtual keys / control pad --------------------------------------------- */
 .vkeys {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
+  gap: 8px;
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(180deg, var(--panel-2), #080c14);
   border-top: 1px solid var(--border);
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Focus target for the OS soft keyboard. Stays in-flow (not display:none) so
+   mobile browsers will actually open the soft keyboard on focus. */
+.device-kb {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: #0c121e;
+  color: var(--text);
+  /* ≥16px prevents iOS focus-zoom. */
+  font-size: 16px;
+  line-height: 1.3;
+  font-family: "Courier New", ui-monospace, monospace;
+  resize: none;
+  overflow: hidden;
+  height: 42px;
+  caret-color: var(--accent);
+}
+
+.device-kb::placeholder {
+  color: var(--muted);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+}
+
+.device-kb--open {
+  border-style: solid;
+  border-color: var(--accent);
+  background: #0f1a14;
+  box-shadow: 0 0 0 1px rgba(53, 208, 127, 0.25);
+}
+
+.vkeys__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vkeys__hint {
+  margin: 0;
+  flex: 1 1 140px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.vkeys--device-open .vkeys__hint {
+  color: var(--accent);
 }
 
 .vkeys__row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.vkeys__row--mods {
+  align-items: stretch;
+}
+
+.vkeys__group {
+  display: flex;
+  gap: 6px;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+}
+
+.vkeys__row--nav {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .vkey {
@@ -192,14 +271,22 @@ body {
   border: 1px solid var(--border);
   background: #1a2338;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  min-width: 46px;
-  height: 40px;
+  min-width: 48px;
+  min-height: 44px;
+  height: 44px;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  touch-action: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s, border-color 0.12s, transform 0.05s;
+}
+
+.vkey:hover:not(:disabled) {
+  background: #22314c;
+  border-color: #33507d;
 }
 
 .vkey--down {
@@ -210,38 +297,136 @@ body {
 .vkey--mod {
   color: var(--accent-2);
   border-color: #4a3d1e;
+  min-width: 56px;
 }
 
 .vkey--active {
   background: var(--accent-2);
   color: #1a1405;
-  box-shadow: 0 0 10px rgba(244, 191, 79, 0.55);
+  border-color: var(--accent-2);
+  box-shadow: 0 0 10px rgba(244, 191, 79, 0.45);
+}
+
+.vkey--tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: auto;
+  padding: 0 14px;
+  background: #152036;
+  border-color: #2d4468;
+}
+
+.vkey--device {
+  color: var(--accent);
+  border-color: #1f6b4a;
+}
+
+.vkey--device.vkey--active {
+  background: var(--accent);
+  color: #04140c;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(53, 208, 127, 0.45);
+}
+
+.vkey__icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.vkey--space {
+  flex: 1 1 72px;
+  min-width: 72px;
+}
+
+.vkeys__dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 44px);
+  gap: 4px;
+  flex: 0 0 auto;
 }
 
 .vkey--arrow {
-  min-width: 52px;
+  min-width: 48px;
+  width: 48px;
+  padding: 0;
   font-size: 16px;
   color: var(--accent);
 }
 
+.vkey--arrow-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.vkey--arrow-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.vkey--arrow-down {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.vkey--arrow-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
 .vkeys__fkeys {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   overflow-x: auto;
   flex: 1 1 auto;
   padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .vkey--fn {
-  min-width: 40px;
-  height: 34px;
-  font-size: 11px;
-  padding: 0 6px;
+  min-width: 44px;
+  height: 44px;
+  font-size: 12px;
+  padding: 0 8px;
   color: var(--muted);
+  flex: 0 0 auto;
 }
 
 @media (min-width: 900px) {
   .vkey {
-    height: 36px;
+    min-height: 40px;
+    height: 40px;
+  }
+
+  .vkeys__dpad {
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(3, 40px);
+  }
+
+  .vkey--arrow {
+    min-width: 44px;
+    width: 44px;
+    height: 40px;
+  }
+
+  .vkey--fn {
+    height: 40px;
+  }
+
+  .vkeys__hint {
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  .vkeys__hint {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .vkey--mod {
+    flex: 1 1 0;
   }
 }

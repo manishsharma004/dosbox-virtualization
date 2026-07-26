@@ -1,5 +1,9 @@
 import type { CommandInterface } from "../dos/jsdos";
 import { KBD, type KbdKey } from "../dos/keyCodes";
+import {
+  createDeviceKeyboard,
+  type DeviceKeyboard,
+} from "./device-keyboard";
 
 type GetCi = () => CommandInterface | null;
 
@@ -17,13 +21,11 @@ const MODIFIERS: KeyDef[] = [
   { key: "leftshift", label: "Shift" },
 ];
 
-// Momentary keys: down on pointerdown, up on pointerup. Holding also works,
-// which matters for arrow keys in games like Dave.
-const SPECIAL: KeyDef[] = [
+const EDIT: KeyDef[] = [
   { key: "tab", label: "Tab" },
   { key: "esc", label: "Esc" },
+  { key: "backspace", label: "Bksp" },
   { key: "enter", label: "Enter" },
-  { key: "space", label: "Space" },
 ];
 
 const ARROWS: KeyDef[] = [
@@ -48,16 +50,27 @@ const FKEYS: KbdKey[] = [
 
 export interface ModifierBar {
   element: HTMLElement;
+  /** Show or hide the whole control pad. */
+  setVisible(visible: boolean): void;
+  /** Whether the OS soft keyboard bridge is focused. */
+  isDeviceKeyboardOpen(): boolean;
+  openDeviceKeyboard(): void;
+  closeDeviceKeyboard(): void;
+  /** Subscribe to device-keyboard open/close. Returns an unsubscribe. */
+  onDeviceKeyboardChange(cb: (open: boolean) => void): () => void;
 }
 
 export function createModifierBar(getCi: GetCi): ModifierBar {
   const root = document.createElement("div");
   root.className = "vkeys";
   root.setAttribute("role", "group");
-  root.setAttribute("aria-label", "Virtual control keys");
+  root.setAttribute("aria-label", "DOS control pad");
+
+  const deviceKb: DeviceKeyboard = createDeviceKeyboard(getCi);
 
   const latched = new Set<KbdKey>();
   const latchedButtons = new Map<KbdKey, HTMLButtonElement>();
+  let fnVisible = false;
 
   const releaseLatched = () => {
     const ci = getCi();
@@ -65,6 +78,7 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
     for (const k of latched) {
       ci?.sendKeyEvent(KBD[k], false);
       latchedButtons.get(k)?.classList.remove("vkey--active");
+      latchedButtons.get(k)?.setAttribute("aria-pressed", "false");
     }
     latched.clear();
   };
@@ -74,6 +88,7 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
     btn.type = "button";
     btn.className = `vkey ${extraCls} ${def.cls ?? ""}`.trim();
     btn.textContent = def.label;
+    btn.setAttribute("aria-label", def.label);
     return btn;
   };
 
@@ -83,6 +98,8 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
     latchedButtons.set(def.key, btn);
     btn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
+      // Keep the soft keyboard up while toggling modifiers.
+      if (deviceKb.isOpen()) deviceKb.open();
       const ci = getCi();
       if (!ci) return;
       if (latched.has(def.key)) {
@@ -117,6 +134,7 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
       e.preventDefault();
       if (held) return;
       held = true;
+      if (deviceKb.isOpen()) deviceKb.open();
       // Send the key BEFORE anything that could throw (e.g. setPointerCapture
       // with a synthetic pointerId), so the key-down always reaches the game.
       getCi()?.sendKeyEvent(code, true);
@@ -145,6 +163,7 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
       btn.classList.remove("vkey--down");
       // A combo like Ctrl+F9 clears the latched modifier afterwards.
       releaseLatched();
+      if (deviceKb.isOpen()) deviceKb.open();
     };
 
     // Listen for pointer, mouse AND touch events (deduped by the `held` guard)
@@ -164,24 +183,113 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
     return btn;
   };
 
-  const rowMain = document.createElement("div");
-  rowMain.className = "vkeys__row";
-  MODIFIERS.forEach((d) => rowMain.appendChild(addModifier(d)));
-  SPECIAL.forEach((d) => rowMain.appendChild(addMomentary(d, "")));
+  // --- Toolbar: device keyboard switch + Fn layer -------------------------
+  const toolbar = document.createElement("div");
+  toolbar.className = "vkeys__toolbar";
 
+  const btnDevice = document.createElement("button");
+  btnDevice.type = "button";
+  btnDevice.className = "vkey vkey--tool vkey--device";
+  btnDevice.setAttribute("aria-pressed", "false");
+  btnDevice.innerHTML =
+    '<span class="vkey__icon" aria-hidden="true">\u2328</span><span class="vkey__label">Device keyboard</span>';
+
+  const btnFn = document.createElement("button");
+  btnFn.type = "button";
+  btnFn.className = "vkey vkey--tool";
+  btnFn.textContent = "Fn";
+  btnFn.setAttribute("aria-pressed", "false");
+  btnFn.title = "Show function keys";
+
+  const hint = document.createElement("p");
+  hint.className = "vkeys__hint";
+  hint.textContent =
+    "Use Device keyboard to type. On-screen keys cover Ctrl/Alt/arrows.";
+
+  toolbar.append(btnDevice, btnFn, hint);
+
+  // --- Modifier + edit row ------------------------------------------------
+  const rowMods = document.createElement("div");
+  rowMods.className = "vkeys__row vkeys__row--mods";
+  MODIFIERS.forEach((d) => rowMods.appendChild(addModifier(d)));
+
+  const editGroup = document.createElement("div");
+  editGroup.className = "vkeys__group";
+  EDIT.forEach((d) => editGroup.appendChild(addMomentary(d, "")));
+  editGroup.appendChild(addMomentary({ key: "space", label: "Space" }, "vkey--space"));
+  rowMods.appendChild(editGroup);
+
+  // --- Arrow D-pad + optional F-keys --------------------------------------
   const rowNav = document.createElement("div");
-  rowNav.className = "vkeys__row";
-  ARROWS.forEach((d) => rowNav.appendChild(addMomentary(d, "vkey--arrow")));
+  rowNav.className = "vkeys__row vkeys__row--nav";
+
+  const dpad = document.createElement("div");
+  dpad.className = "vkeys__dpad";
+  dpad.setAttribute("aria-label", "Arrow keys");
+  const arrowBtns: Record<string, HTMLButtonElement> = {};
+  for (const d of ARROWS) {
+    arrowBtns[d.key] = addMomentary(d, `vkey--arrow vkey--arrow-${d.key}`);
+  }
+  dpad.append(
+    arrowBtns.up,
+    arrowBtns.left,
+    arrowBtns.down,
+    arrowBtns.right,
+  );
 
   const fnWrap = document.createElement("div");
   fnWrap.className = "vkeys__fkeys";
+  fnWrap.hidden = true;
   FKEYS.forEach((key) =>
     fnWrap.appendChild(
       addMomentary({ key, label: key.toUpperCase() }, "vkey--fn"),
     ),
   );
-  rowNav.appendChild(fnWrap);
 
-  root.append(rowMain, rowNav);
-  return { element: root };
+  rowNav.append(dpad, fnWrap);
+
+  // Typing strip sits above the keys so it stays visible with the OSK.
+  root.append(deviceKb.element, toolbar, rowMods, rowNav);
+
+  const syncDeviceBtn = (isOpen: boolean) => {
+    btnDevice.classList.toggle("vkey--active", isOpen);
+    btnDevice.setAttribute("aria-pressed", String(isOpen));
+    const label = btnDevice.querySelector(".vkey__label");
+    if (label) {
+      label.textContent = isOpen ? "Hide device keyboard" : "Device keyboard";
+    }
+    root.classList.toggle("vkeys--device-open", isOpen);
+  };
+
+  btnDevice.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (deviceKb.isOpen()) {
+      deviceKb.close();
+    } else {
+      deviceKb.open();
+    }
+  });
+
+  deviceKb.onChange(syncDeviceBtn);
+
+  btnFn.addEventListener("click", (e) => {
+    e.preventDefault();
+    fnVisible = !fnVisible;
+    fnWrap.hidden = !fnVisible;
+    btnFn.classList.toggle("vkey--active", fnVisible);
+    btnFn.setAttribute("aria-pressed", String(fnVisible));
+    if (deviceKb.isOpen()) deviceKb.open();
+  });
+
+  return {
+    element: root,
+    setVisible(visible: boolean) {
+      root.style.display = visible ? "" : "none";
+      if (!visible && deviceKb.isOpen()) deviceKb.close();
+    },
+    isDeviceKeyboardOpen: () => deviceKb.isOpen(),
+    openDeviceKeyboard: () => deviceKb.open(),
+    closeDeviceKeyboard: () => deviceKb.close(),
+    onDeviceKeyboardChange: (cb) => deviceKb.onChange(cb),
+  };
 }
