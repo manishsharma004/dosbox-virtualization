@@ -102,22 +102,42 @@ export function createModifierBar(getCi: GetCi): ModifierBar {
 
   const addMomentary = (def: KeyDef, extraCls: string) => {
     const btn = makeButton(def, extraCls);
-    const down = (e: PointerEvent) => {
+    let held = false;
+
+    const press = (e: Event) => {
       e.preventDefault();
-      btn.setPointerCapture?.(e.pointerId);
+      if (held) return;
+      held = true;
+      // Send the key BEFORE anything that could throw (e.g. setPointerCapture
+      // with a synthetic pointerId), so the key-down always reaches the game.
       getCi()?.sendKeyEvent(KBD[def.key], true);
       btn.classList.add("vkey--down");
+      const pid = (e as PointerEvent).pointerId;
+      if (pid !== undefined) {
+        try {
+          btn.setPointerCapture(pid);
+        } catch {
+          /* ignore */
+        }
+      }
     };
-    const up = (e: PointerEvent) => {
-      e.preventDefault();
+
+    const release = (e?: Event) => {
+      e?.preventDefault();
+      if (!held) return;
+      held = false;
       getCi()?.sendKeyEvent(KBD[def.key], false);
       btn.classList.remove("vkey--down");
       // A combo like Ctrl+F9 clears the latched modifier afterwards.
       releaseLatched();
     };
-    btn.addEventListener("pointerdown", down);
-    btn.addEventListener("pointerup", up);
-    btn.addEventListener("pointercancel", up);
+
+    btn.addEventListener("pointerdown", press);
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointercancel", release);
+    btn.addEventListener("lostpointercapture", release);
+    // Safety net: never let a key stay stuck down.
+    window.addEventListener("blur", () => release());
     return btn;
   };
 
