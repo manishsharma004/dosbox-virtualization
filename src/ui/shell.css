@@ -116,10 +116,13 @@ body {
   height: 100%;
 }
 
-.dos-canvas canvas {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain;
+/* js-dos injects its own player (class .jsdos-rso) into this element and sizes
+   the <canvas> itself, keeping the classic 4:3 aspect ratio and scaling it to
+   fill the available area. We just make sure every wrapper fills the box so the
+   emulator gets the full width/height to work with. */
+.dos-canvas > .jsdos-rso {
+  width: 100%;
+  height: 100%;
 }
 
 .app__loading {
