@@ -46,9 +46,11 @@ Standard commands, scripts, and the local setup flow are documented in
 - The DOS canvas is sized by js-dos itself (keeps 4:3 and scales to fill). Do not
   force `width/height`/`object-fit` on the `<canvas>`; just let the wrapper fill
   the area (`src/ui/shell.css`).
-- Turbo C++ IDE defaults expect `C:\TC\INCLUDE` and `C:\TC\LIB` (the bundle
-  layout). A `C:\TURBOC.CFG` lets the command-line `TCC` find them; `HELLO.BAT`
-  compiles/runs the sample `C:\HELLO.C`.
+- Turbo C++ IDE directory defaults are baked into `TC.EXE` as `C:\TCLITE\...`
+  (museum freeware). `fetch-vendor.mjs` patches them to `C:\TC\INCLUDE` /
+  `C:\TC\LIB` to match the bundle layout. A `C:\TURBOC.CFG` lets the
+  command-line `TCC` find the same paths; `HELLO.BAT` compiles/runs the sample
+  `C:\HELLO.C`.
 
 ### Testing
 - Testing is manual/GUI via the browser (js-dos runs DOSBox in a Web Worker).
