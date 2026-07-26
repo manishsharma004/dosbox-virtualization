@@ -102,6 +102,12 @@ body {
   background: transparent;
 }
 
+.app__btn--active {
+  background: var(--accent);
+  color: #04140c;
+  border-color: var(--accent);
+}
+
 /* DOS screen -------------------------------------------------------------- */
 .app__screen {
   position: relative;
@@ -167,17 +173,98 @@ body {
   text-align: center;
 }
 
-/* Virtual keys ------------------------------------------------------------ */
+/* Virtual keys / control pad --------------------------------------------- */
 .vkeys {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(180deg, var(--panel-2), #080c14);
   border-top: 1px solid var(--border);
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Focus target for the OS soft keyboard. Hidden until Device KB mode so it
+   does not steal vertical space; must stay display:block (not none) when shown
+   or mobile browsers will refuse to open the OSK. */
+.device-kb {
+  display: none;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: #0c121e;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.25;
+  font-family: "Courier New", ui-monospace, monospace;
+  resize: none;
+  overflow: hidden;
+  height: 36px;
+  caret-color: var(--accent);
+}
+
+.device-kb--visible {
+  display: block;
+}
+
+.device-kb::placeholder {
+  color: var(--muted);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+}
+
+.device-kb--open {
+  border-style: solid;
+  border-color: var(--accent);
+  background: #0f1a14;
+  box-shadow: 0 0 0 1px rgba(53, 208, 127, 0.25);
+}
+
+.vkeys__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vkeys__modes {
+  display: inline-flex;
+  gap: 0;
+  flex: 1 1 auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0c121e;
+}
+
+.vkeys__modes .vkey--mode {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 0;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  font-size: 11px;
+  padding: 0 8px;
+}
+
+.vkeys__modes .vkey--mode:last-child {
+  border-right: 0;
+}
+
+.vkeys__modes .vkey--mode.vkey--active {
+  background: var(--accent);
+  color: #04140c;
+  box-shadow: none;
 }
 
 .vkeys__row {
@@ -187,6 +274,28 @@ body {
   flex-wrap: wrap;
 }
 
+.vkeys__row--main {
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.vkeys__keys {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vkeys__row--mods {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 1px;
+}
+
 .vkey {
   appearance: none;
   border: 1px solid var(--border);
@@ -194,12 +303,21 @@ body {
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
-  min-width: 46px;
+  min-width: 44px;
+  min-height: 40px;
   height: 40px;
-  padding: 0 12px;
+  padding: 0 10px;
   border-radius: 8px;
   cursor: pointer;
-  touch-action: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s, border-color 0.12s, transform 0.05s;
+  flex: 0 0 auto;
+}
+
+.vkey:hover:not(:disabled) {
+  background: #22314c;
+  border-color: #33507d;
 }
 
 .vkey--down {
@@ -210,38 +328,182 @@ body {
 .vkey--mod {
   color: var(--accent-2);
   border-color: #4a3d1e;
+  min-width: 52px;
 }
 
 .vkey--active {
   background: var(--accent-2);
   color: #1a1405;
-  box-shadow: 0 0 10px rgba(244, 191, 79, 0.55);
+  border-color: var(--accent-2);
+  box-shadow: 0 0 10px rgba(244, 191, 79, 0.45);
+}
+
+.vkey--tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: auto;
+  min-height: 34px;
+  height: 34px;
+  padding: 0 12px;
+  background: #152036;
+  border-color: #2d4468;
+  font-size: 12px;
+}
+
+.vkey--space {
+  flex: 1 1 auto;
+  min-width: 64px;
+}
+
+.vkey--enter {
+  min-width: 64px;
+  color: var(--accent);
+}
+
+.vkey--bksp {
+  min-width: 52px;
+}
+
+.vkeys__dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(2, 40px);
+  gap: 4px;
+  flex: 0 0 auto;
 }
 
 .vkey--arrow {
-  min-width: 52px;
-  font-size: 16px;
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 14px;
   color: var(--accent);
+}
+
+.vkey--arrow-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.vkey--arrow-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.vkey--arrow-down {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.vkey--arrow-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.vkeys__alpha {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vkeys__alpha[hidden] {
+  display: none !important;
+}
+
+.vkeys__alpha-row {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+.vkeys__alpha-row--bottom {
+  margin-top: 2px;
+}
+
+.vkey--char {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 42px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 2px;
+  font-size: 13px;
+  font-family: "Courier New", ui-monospace, monospace;
 }
 
 .vkeys__fkeys {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   overflow-x: auto;
-  flex: 1 1 auto;
+  width: 100%;
   padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vkeys__fkeys[hidden] {
+  display: none !important;
 }
 
 .vkey--fn {
-  min-width: 40px;
-  height: 34px;
-  font-size: 11px;
+  min-width: 42px;
+  height: 36px;
+  min-height: 36px;
+  font-size: 12px;
   padding: 0 6px;
   color: var(--muted);
+  flex: 1 0 auto;
 }
 
 @media (min-width: 900px) {
   .vkey {
+    min-height: 36px;
     height: 36px;
+  }
+
+  .vkey--char {
+    max-width: 48px;
+    min-height: 34px;
+    height: 34px;
+  }
+
+  .vkeys__dpad {
+    grid-template-columns: repeat(3, 36px);
+    grid-template-rows: repeat(2, 36px);
+  }
+
+  .vkey--arrow {
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .vkey--fn {
+    height: 34px;
+    min-height: 34px;
+  }
+}
+
+@media (max-width: 480px) {
+  .vkeys__modes .vkey--mode {
+    font-size: 10px;
+    padding: 0 4px;
+  }
+
+  .vkeys__row--main {
+    flex-wrap: wrap;
+  }
+
+  .vkeys__dpad {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .vkey--char {
+    min-height: 40px;
+    height: 40px;
+    font-size: 14px;
   }
 }
