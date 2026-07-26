@@ -54,6 +54,8 @@ export async function startDos(
     pathPrefix: EMULATORS_PATH_PREFIX,
     theme: "dark",
     backend: "dosbox",
+    autoStart: true,
+    noCloud: true,
     onEvent: (event: string, ...args: unknown[]) => {
       if (stopped) return;
       if (event === "ci-ready") {

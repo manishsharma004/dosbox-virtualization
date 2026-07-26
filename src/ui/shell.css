@@ -132,6 +132,8 @@ body {
   gap: 14px;
   color: var(--muted);
   background: radial-gradient(circle at 50% 40%, #0c1424, #05070d);
+  /* Never block js-dos's own start/loading UI underneath. */
+  pointer-events: none;
   z-index: 5;
 }
 

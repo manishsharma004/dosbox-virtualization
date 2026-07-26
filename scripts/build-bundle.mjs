@@ -1,12 +1,18 @@
 // Packs the DOS config + vendored apps into public/msdos.jsdos (a js-dos
 // bundle == a ZIP whose root becomes the C: drive).
 //
+// We build a staging tree and zip it with Info-ZIP `zip`, which writes standard
+// local headers + directory entries. (A pure-JS streaming zipper like yazl emits
+// data descriptors with zero-size local headers, which js-dos's in-wasm
+// extractor mis-parses -> "TC/BGI: No such file or directory".)
+//
 // Usage:
-//   node scripts/build-bundle.mjs            # always rebuild
+//   node scripts/build-bundle.mjs             # always rebuild
 //   node scripts/build-bundle.mjs --if-needed # skip if bundle already exists
 
-import yazl from "yazl";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,14 +30,12 @@ function fail(msg) {
   process.exit(1);
 }
 
-function walk(dir, base = dir) {
-  const out = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...walk(full, base));
-    else out.push({ full, rel: path.relative(base, full) });
+function requireZip() {
+  try {
+    execFileSync("zip", ["-v"], { stdio: "ignore" });
+  } catch {
+    fail("`zip` (Info-ZIP) is required. Install it: `sudo apt-get install zip`.");
   }
-  return out;
 }
 
 function main() {
@@ -39,6 +43,7 @@ function main() {
     console.log(`msdos.jsdos already present -> ${path.relative(ROOT, OUT)}`);
     return;
   }
+  requireZip();
 
   const tcRoot = path.join(VENDOR, "TC");
   const daveRoot = path.join(VENDOR, "DAVE");
@@ -49,36 +54,40 @@ function main() {
     fail("vendor/DAVE/DAVE.EXE not found");
   }
 
-  const zip = new yazl.ZipFile();
+  const stage = fs.mkdtempSync(path.join(os.tmpdir(), "dosbundle-"));
+  try {
+    // C: drive layout inside the bundle root.
+    fs.mkdirSync(path.join(stage, ".jsdos"), { recursive: true });
+    fs.copyFileSync(
+      path.join(ASSETS, "dosbox.conf"),
+      path.join(stage, ".jsdos", "dosbox.conf"),
+    );
+    for (const bat of ["MENU.BAT", "TC.BAT", "DAVE.BAT"]) {
+      fs.copyFileSync(path.join(ASSETS, bat), path.join(stage, bat));
+    }
+    fs.cpSync(tcRoot, path.join(stage, "TC"), { recursive: true });
+    fs.cpSync(daveRoot, path.join(stage, "DAVE"), { recursive: true });
 
-  // 1) js-dos config (mounts the bundle root as C: and shows the menu).
-  zip.addFile(path.join(ASSETS, "dosbox.conf"), ".jsdos/dosbox.conf");
+    fs.mkdirSync(path.dirname(OUT), { recursive: true });
+    fs.rmSync(OUT, { force: true });
 
-  // 2) Menu + launcher batch files at C:\.
-  for (const bat of ["MENU.BAT", "TC.BAT", "DAVE.BAT"]) {
-    zip.addFile(path.join(ASSETS, bat), bat);
-  }
+    // -r recursive, -q quiet, -X drop extra attrs. Run from the stage so paths
+    // are relative to the bundle root.
+    execFileSync("zip", ["-r", "-q", "-X", OUT, "."], { cwd: stage });
 
-  // 3) Turbo C++ 1.01 -> C:\TC   and original Dangerous Dave -> C:\DAVE
-  let count = 0;
-  for (const { full, rel } of walk(tcRoot)) {
-    zip.addFile(full, `TC/${rel.split(path.sep).join("/")}`);
-    count++;
-  }
-  for (const { full, rel } of walk(daveRoot)) {
-    zip.addFile(full, `DAVE/${rel.split(path.sep).join("/")}`);
-    count++;
-  }
-
-  fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  const stream = fs.createWriteStream(OUT);
-  zip.outputStream.pipe(stream).on("close", () => {
+    const countFiles = (dir) =>
+      fs.readdirSync(dir, { withFileTypes: true }).reduce((n, e) => {
+        const full = path.join(dir, e.name);
+        return n + (e.isDirectory() ? countFiles(full) : 1);
+      }, 0);
+    const fileCount = countFiles(stage);
     const size = (fs.statSync(OUT).size / (1024 * 1024)).toFixed(1);
     console.log(
-      `Packed ${count + 4} files -> ${path.relative(ROOT, OUT)} (${size} MB)`,
+      `Packed ${fileCount} files -> ${path.relative(ROOT, OUT)} (${size} MB)`,
     );
-  });
-  zip.end();
+  } finally {
+    fs.rmSync(stage, { recursive: true, force: true });
+  }
 }
 
 main();
