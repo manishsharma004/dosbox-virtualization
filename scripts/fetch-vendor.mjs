@@ -131,7 +131,42 @@ async function installTurboCpp(scratchBase) {
   if (!fs.existsSync(tcExe)) {
     throw new Error("Turbo C++ install failed: TC.EXE missing");
   }
+  // The museum freeware binary ships with Options/Directories baked in as
+  // C:\TCLITE\..., but we lay the tree out under C:\TC (matching TURBOC.CFG,
+  // PATH, and TC.BAT). Patch the null-padded string buffers in place.
+  patchTcIdeDirectories(tcExe);
   console.log(`  installed -> ${path.relative(ROOT, tcExe)}`);
+}
+
+// Replace fixed-buffer path defaults inside TC.EXE (null-terminated, padded).
+function patchTcIdeDirectories(tcExe) {
+  const replacements = [
+    ["C:\\TCLITE\\INCLUDE", "C:\\TC\\INCLUDE"],
+    ["C:\\TCLITE\\LIB", "C:\\TC\\LIB"],
+  ];
+  let buf = fs.readFileSync(tcExe);
+  for (const [from, to] of replacements) {
+    if (to.length > from.length) {
+      throw new Error(`Cannot patch ${from} -> ${to}: replacement longer`);
+    }
+    const fromBuf = Buffer.from(from, "ascii");
+    const toBuf = Buffer.from(to, "ascii");
+    let idx = 0;
+    let hits = 0;
+    while ((idx = buf.indexOf(fromBuf, idx)) !== -1) {
+      toBuf.copy(buf, idx);
+      buf.fill(0, idx + toBuf.length, idx + fromBuf.length);
+      hits++;
+      idx += fromBuf.length;
+    }
+    if (hits === 0) {
+      throw new Error(
+        `Turbo C++ directory patch failed: ${from} not found in TC.EXE`,
+      );
+    }
+  }
+  fs.writeFileSync(tcExe, buf);
+  console.log("  patched IDE defaults: C:\\TC\\INCLUDE, C:\\TC\\LIB");
 }
 
 async function installDave(scratchBase) {
